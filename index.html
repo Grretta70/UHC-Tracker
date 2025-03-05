@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Utah Hockey Club Stats</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #ff7300; }
+        .stats, .games, .players { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Utah Hockey Club Stats</h1>
+    <div class="stats"><h2>Team Stats</h2><p>Loading...</p></div>
+    <div class="games"><h2>Recent Games</h2><p>Loading...</p></div>
+    <div class="players"><h2>Top Players</h2><p>Loading...</p></div>
+
+    <script>
+        async function fetchHockeyData() {
+            try {
+                const teamResponse = await fetch('https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/55');
+                const teamData = await teamResponse.json();
+                console.log("Team Data:", teamData);
+
+                // Extract Team Stats
+                const stats = {
+                    wins: teamData.team.record.wins ?? 'N/A',
+                    losses: teamData.team.record.losses ?? 'N/A',
+                    points: teamData.team.record.points ?? 'N/A',
+                    goalDifferential: 'N/A' // ESPN API does not provide this directly
+                };
+                document.querySelector('.stats').innerHTML = `
+                    <h2>Team Stats</h2>
+                    <p>Wins: ${stats.wins}</p>
+                    <p>Losses: ${stats.losses}</p>
+                    <p>Points: ${stats.points}</p>
+                    <p>Goal Differential: ${stats.goalDifferential}</p>
+                `;
+
+                // Fetch Recent Games
+                const gamesResponse = await fetch('https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard');
+                const gamesData = await gamesResponse.json();
+                console.log("Games Data:", gamesData);
+
+                let gameHTML = '<h2>Recent Games</h2>';
+                gamesData.events.slice(0, 5).forEach(game => {
+                    const homeTeam = game.competitions[0].competitors[0].team.displayName;
+                    const awayTeam = game.competitions[0].competitors[1].team.displayName;
+                    const homeScore = game.competitions[0].competitors[0].score;
+                    const awayScore = game.competitions[0].competitors[1].score;
+                    gameHTML += `<p>${awayTeam} ${awayScore} - ${homeScore} ${homeTeam}</p>`;
+                });
+                document.querySelector('.games').innerHTML = gameHTML;
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.querySelector('.stats').innerHTML = '<p>Error loading data.</p>';
+                document.querySelector('.games').innerHTML = '<p>Error loading data.</p>';
+                document.querySelector('.players').innerHTML = '<p>Error loading data.</p>';
+            }
+        }
+
+        fetchHockeyData();
+    </script>
+</body>
+</html>
