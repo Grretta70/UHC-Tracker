@@ -21,13 +21,18 @@
             try {
                 const teamResponse = await fetch('https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/55');
                 const teamData = await teamResponse.json();
-                console.log("Team Data:", teamData);
+                console.log("Team Data Response:", teamData); // Debugging log
+
+                // Ensure data exists before trying to access it
+                if (!teamData.team || !teamData.team.record) {
+                    throw new Error("Invalid team data format");
+                }
 
                 // Extract Team Stats
                 const stats = {
-                    wins: teamData.team.record.wins ?? 'N/A',
-                    losses: teamData.team.record.losses ?? 'N/A',
-                    points: teamData.team.record.points ?? 'N/A',
+                    wins: teamData.team.record.items.find(item => item.type === "total")?.summary.split('-')[0] ?? 'N/A',
+                    losses: teamData.team.record.items.find(item => item.type === "total")?.summary.split('-')[1] ?? 'N/A',
+                    points: teamData.team.record.items.find(item => item.type === "total")?.stats.find(stat => stat.name === "points")?.value ?? 'N/A',
                     goalDifferential: 'N/A' // ESPN API does not provide this directly
                 };
                 document.querySelector('.stats').innerHTML = `
@@ -41,16 +46,20 @@
                 // Fetch Recent Games
                 const gamesResponse = await fetch('https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard');
                 const gamesData = await gamesResponse.json();
-                console.log("Games Data:", gamesData);
+                console.log("Games Data Response:", gamesData); // Debugging log
 
                 let gameHTML = '<h2>Recent Games</h2>';
-                gamesData.events.slice(0, 5).forEach(game => {
-                    const homeTeam = game.competitions[0].competitors[0].team.displayName;
-                    const awayTeam = game.competitions[0].competitors[1].team.displayName;
-                    const homeScore = game.competitions[0].competitors[0].score;
-                    const awayScore = game.competitions[0].competitors[1].score;
-                    gameHTML += `<p>${awayTeam} ${awayScore} - ${homeScore} ${homeTeam}</p>`;
-                });
+                if (gamesData.events) {
+                    gamesData.events.slice(0, 5).forEach(game => {
+                        const homeTeam = game.competitions[0].competitors[0].team.displayName;
+                        const awayTeam = game.competitions[0].competitors[1].team.displayName;
+                        const homeScore = game.competitions[0].competitors[0].score;
+                        const awayScore = game.competitions[0].competitors[1].score;
+                        gameHTML += `<p>${awayTeam} ${awayScore} - ${homeScore} ${homeTeam}</p>`;
+                    });
+                } else {
+                    gameHTML += '<p>No recent games available.</p>';
+                }
                 document.querySelector('.games').innerHTML = gameHTML;
 
             } catch (error) {
